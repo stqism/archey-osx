@@ -7,12 +7,14 @@ arraytest[0]='test' || (echo 'Error: Arrays are not supported in this version of
 bash.' && exit 2)
 
 # Detect the packager.
-if [ -x /usr/local/bin/brew ]; then
+if command -v /usr/local/bin/brew >/dev/null; then
   detectedpackager=homebrew
 elif command -v port >/dev/null; then
   detectedpackager=macports
+elif command -v /nix/var/nix/profiles/default-1-link/bin/nix-env >/dev/null; then
+    detectedpackager=nix
 else
-  detectedpackager=none
+  1r=none
 fi
 
 # Get the command line options
@@ -28,6 +30,10 @@ do
     -m|--macports)
       packager=macports
       ;;
+     -n|--nix)
+      packager=nix
+      ;;
+     
     -b|--nocolor)
       opt_nocolor=t
       ;;
@@ -42,12 +48,13 @@ do
 		opt_localip=t
       ;;
     -h|--help)
-      echo "Archey OS X 1.6.1"
+      echo "Archey OS X 1.7.0"
       echo
       echo "Usage: $0 [options]"
       echo
       echo "  -p --packager  Use auto detected package system (default packager: ${detectedpackager})."
       echo "  -m --macports  Force use MacPorts as package system."
+      echo "  -n --nix       Force use nix as package system."
       echo "  -b --nocolor   Turn color off."
       echo "  -c --color     Force the color on (overrides --nocolor)."
       echo "  -o --offline   Disable the IP address check."
@@ -134,6 +141,9 @@ case "${packager}" in
   macports)
     packagehandler=$(port installed | wc -l | awk '{print $1 }')
     ;;
+  nix)
+    packagehandler=$(/nix/var/nix/profiles/default-1-link/bin/nix-env -q | wc -l | awk '{print $1 }')
+    ;;
   *)
     packagehandler=0
     ;;
@@ -146,9 +156,7 @@ fieldlist[${#fieldlist[@]}]="${textColor}Kernel:${normal} ${kernel}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Uptime:${normal} ${uptime}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Shell:${normal} ${shell}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Terminal:${normal} ${terminal}${normal}"
-if [ ${packagehandler} -ne 0 ]; then
-    fieldlist[${#fieldlist[@]}]="${textColor}Packages:${normal} ${packagehandler}${normal}"
-fi
+fieldlist[${#fieldlist[@]}]="${textColor}Packages (${packager}):${normal} ${packagehandler}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}CPU:${normal} ${cpu}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Memory:${normal} ${ram}${normal}"
 fieldlist[${#fieldlist[@]}]="${textColor}Disk:${normal} ${disk}${normal}"
